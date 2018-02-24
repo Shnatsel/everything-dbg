@@ -34,7 +34,7 @@ apt-rdepends "$1" | grep -v '^ ' | grep '^lib' | while read package_name; do
     fi
 done
 #echo "Checking if required -dbg packages are actually installable..." > /dev/stderr
-(
+result=$((
 cat "$existing_debug_packages" | while read package_name; do
     if apt-get -s install "$package_name" > /dev/null 2>&1; then
         echo "$package_name"
@@ -42,5 +42,5 @@ cat "$existing_debug_packages" | while read package_name; do
         echo "W: $package_name exists, but cannot be installed" > /dev/stderr
     fi
 done
-) | tr '\n' ' '
-
+) | tr '\n' ' ')
+echo "$result"
