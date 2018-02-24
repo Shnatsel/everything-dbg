@@ -16,12 +16,21 @@ You can pass these names to 'apt install' to install everything required for deb
     exit 1
 fi
 
+if [ $(apt-cache pkgnames | grep -- '-dbgsym$' | wc -l) -gt 10 ] && [ -z "$FORCE_DBG" ]; then
+    echo "-dbgsym packages are available! They will be used instead of -dbg packages.
+To force usage of -dbg packages, run $(basename "$0") like this:
+FORCE_DBG=true $(basename "$0") $1"
+    export dbg_suffix='dbgsym'
+else
+    export dbg_suffix='dbg'
+fi
+
 tempfile="$(mktemp)"
 function cleanup {
   rm -f "$tempfile"
 }
 trap cleanup EXIT
-apt-rdepends "$1" | grep -v '^ ' | grep '^lib' | sed 's|$|-dbg|' | sort > "$tempfile"
+apt-rdepends "$1" | grep -v '^ ' | grep '^lib' | sed "s|$|-$dbg_suffix|" | sort > "$tempfile"
 #echo "Checking if required -dbg packages are actually installable..." > /dev/stderr
 (
 apt-cache pkgnames | sort | comm -12 - "$tempfile" | while read package_name; do
