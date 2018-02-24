@@ -1,0 +1,35 @@
+#!/bin/bash
+set -e
+
+if type apt-rdepends > /dev/null 2>&1; then true; else
+echo "Required dependency 'apt-rdepends' is not installed. You can install it by typing:
+sudo apt install apt-rdepends" > /dev/stderr
+exit 1
+fi
+
+if [ "$1" = "" ] || [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
+    echo "
+Usage: $(basename "$0") PACKAGE
+
+Prints names of debugging packages for all dependencies of the specified package.
+You can pass these names to 'apt install' to install everything required for debugging the package you've specified." > /dev/stderr
+    exit 1
+fi
+
+tempfile="$(mktemp)"
+function cleanup {
+  rm -f "$tempfile"
+}
+trap cleanup EXIT
+apt-rdepends "$1" | grep -v '^ ' | grep '^lib' | sed 's|$|-dbg|' | sort > "$tempfile"
+#echo "Checking if required -dbg packages are actually installable..." > /dev/stderr
+(
+apt-cache pkgnames | sort | comm -12 - "$tempfile" | while read package_name; do
+    if apt-get -s install "$package_name" > /dev/null 2>&1; then
+        echo "$package_name"
+    else
+        echo "W: $package_name exists, but cannot be installed" > /dev/stderr
+    fi
+done
+) | tr '\n' ' '
+
