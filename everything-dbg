@@ -24,7 +24,7 @@ function cleanup {
 }
 trap cleanup EXIT
 apt-cache pkgnames | sort > "$all_known_packages"
-apt-rdepends "$1" | grep -v '^ ' | grep '^lib' | while read package_name; do
+apt-rdepends "$1" | grep -v '^ ' | grep '^lib' | while read -r package_name; do
     if grep -q -- "$package_name"'-dbgsym' "$all_known_packages"; then
         echo "$package_name"'-dbgsym' >> "$existing_debug_packages"
     elif grep -q -- "$package_name"'-dbg' "$all_known_packages"; then
@@ -34,8 +34,8 @@ apt-rdepends "$1" | grep -v '^ ' | grep '^lib' | while read package_name; do
     fi
 done
 #echo "Checking if required -dbg packages are actually installable..." > /dev/stderr
-result=$((
-cat "$existing_debug_packages" | while read package_name; do
+result=$( (
+cat "$existing_debug_packages" | while read -r package_name; do
     if apt-get -s install "$package_name" > /dev/null 2>&1; then
         echo "$package_name"
     else
